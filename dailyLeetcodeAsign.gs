@@ -96,6 +96,35 @@ function createAndSendEmail(easyId, mediumId, hardId, ezQuestion, meQuestion, ha
   } catch (err) {
     Logger.log('Failed with error %s', err.message);
   }
+  setLeetCodeCalendar(title, htmlBody)
+}
+
+function setLeetCodeCalendar(eventTitle, eventDesc) {
+  var ary = CalendarApp.getAllOwnedCalendars();
+  if (ary.length == 0) {
+    Logger.log("找不到已存在的日曆");
+    return;
+  }
+  // found leetcode calendar
+  var calendarId = ""
+  for (var i=0; i<ary.length; i++){
+    if (ary[i].getName() == "LeetCode") {
+      calendarId = ary[i].getId()
+    }
+  }
+
+  const date = new Date();
+
+  var cal = CalendarApp.getCalendarById(calendarId);
+  if (cal != null){
+    var title = eventTitle;
+    var desc = eventDesc;
+    // var loc = '新北市';
+    var event1 = cal.createAllDayEvent(title, date, {description : desc});
+    // event1.setColor("9");
+  } else {
+    Logger.log("日曆不存在！");
+  }
 }
 
 function main() {
