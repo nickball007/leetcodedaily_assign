@@ -1,3 +1,25 @@
+function queryDailyQuestion() {
+  var url = "https://leetcode.com/graphql";
+
+  var query_dailyQuestion = {
+    "method": "POST", 
+    "headers": {
+      "Content-Type": "application/json", 
+    },
+    "payload": JSON.stringify({
+      "query":"\n    query questionOfToday {\n  activeDailyCodingChallengeQuestion {\n    date\n    userStatus\n    link\n    question {\n      acRate\n      difficulty\n      freqBar\n      frontendQuestionId: questionFrontendId\n      isFavor\n      paidOnly: isPaidOnly\n      status\n      title\n      titleSlug\n      hasVideoSolution\n      hasSolution\n      topicTags {\n        name\n        id\n        slug\n      }\n    }\n  }\n}\n    ","variables":{}
+    })
+  }
+
+  var response = UrlFetchApp.fetch(url, query_dailyQuestion);
+  var dailyQuestionData = JSON.parse(response).data.activeDailyCodingChallengeQuestion.question
+  var dailyTitle = dailyQuestionData.title
+  var dailyId = dailyQuestionData.frontendQuestionId
+  var dailyTitleSlug = dailyQuestionData.titleSlug
+
+  return [dailyId, dailyTitle, dailyTitleSlug ]
+}
+
 function queryQuestionCount() {
   var url = "https://leetcode.com/graphql";
 
@@ -55,7 +77,7 @@ function sortInt(arr){
   return arr.sort(function(a, b) {return a - b})
 }
 
-function createAndSendEmail(easyId, mediumId, hardId, ezQuestion, meQuestion, haQuestion) {
+function createAndSendEmail(easyId, mediumId, hardId, ezQuestion, meQuestion, haQuestion, dailyQuestionData) {
   try {
   var easyIdList = "";
   var mediumIdList = "";
@@ -64,7 +86,8 @@ function createAndSendEmail(easyId, mediumId, hardId, ezQuestion, meQuestion, ha
   mediumId = sortInt(mediumId)
   hardId = sortInt(hardId)
 
-  var htmlBody = 'Easy: <br/>'
+  var htmlBody = 'Daily: <br/>' + dailyQuestionData[0] + ": <a href='" + "https://leetcode.com/problems/" + dailyQuestionData[2] + "/'>" + dailyQuestionData[1] + "</a><br/>"
+  var htmlBody = htmlBody + 'Easy: <br/>'
   for (let i = 0; i < easyId.length; i++) {
     easyIdList = easyIdList.concat(easyId[i] + ", ")
     var problemURL = "https://leetcode.com/problems/" + ezQuestion.questions.find(x => x.frontendQuestionId == easyId[i]).titleSlug + "/"
@@ -83,7 +106,7 @@ function createAndSendEmail(easyId, mediumId, hardId, ezQuestion, meQuestion, ha
     htmlBody = htmlBody + hardId[i] + ": <a href='" + problemURL + "'>" + haQuestion.questions.find(x => x.frontendQuestionId == hardId[i]).title + "</a><br/>"
   }
   
-  var title = "Easy: " + easyIdList.slice(0, easyIdList.length - 1) + "Medium: " + mediumIdList.slice(0, mediumIdList.length - 1) + "Hard: " + hardIdList.slice(0, hardIdList.length - 1);
+  var title = "Daily: " + dailyQuestionData[0] +  " Easy: " + easyIdList.slice(0, easyIdList.length - 2) + " Medium: " + mediumIdList.slice(0, mediumIdList.length - 2) + " Hard: " + hardIdList.slice(0, hardIdList.length - 2);
   const email = Session.getActiveUser().getEmail(); // your login user
 
   var message = {
@@ -139,6 +162,7 @@ function main() {
   var mediumQuestion = queryQuestionList(totalMediumQuestion_count, "MEDIUM", false)
   var hardQuestion = queryQuestionList(totalHardQuestion_count, "HARD", false)
   var premiumQuestion = queryQuestionList(totalHardQuestion_count, "", true)
+  var dailyQuestion = queryDailyQuestion()
 
   const premiumOnlyToDeleteSet = new Set(premiumQuestion[1]);
   const easyQuestionWoPremium_frontendQuestionId = easyQuestion[1].filter((name) => {
@@ -158,6 +182,6 @@ function main() {
   var todayMeQuestion = getMultipleRandom(mediumQuestionWoPremium_frontendQuestionId, mediumNumber)
   var todayHaQuestion = getMultipleRandom(hardQuestionWoPremium_frontendQuestionId, hardNumber)
 
-  createAndSendEmail(todayEzQuestion, todayMeQuestion, todayHaQuestion, easyQuestion[0], mediumQuestion[0], hardQuestion[0])
+  createAndSendEmail(todayEzQuestion, todayMeQuestion, todayHaQuestion, easyQuestion[0], mediumQuestion[0], hardQuestion[0], dailyQuestion)
 }
 
